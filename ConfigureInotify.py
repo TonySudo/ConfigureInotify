@@ -1,15 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016 - zengjf <zengjf42@163.com>
+# Copyright (c) 2017 - zengjf <zengjf42@163.com>
 
 import configparser
 import threading
+import os
+import pyinotify
+from pyinotify import WatchManager, Notifier, ProcessEvent
+
+class InotifyEventHandler(ProcessEvent):
+    def process_IN_MODIFY(self, event):
+        # reparse the configure file
+        ConfigureInotify.parse_config()
 
 # 初始化配置
 class ConfigureInotify(threading.Thread):
 
     __mutex = threading.Lock()
-    __configure_file_path = "config.ini"
+    __configure_file_path = "config/config.ini"
     config = configparser.ConfigParser()
 
     # 使用单例模式来生成统一的对象
@@ -27,11 +35,11 @@ class ConfigureInotify(threading.Thread):
     def parse_config(cls):
 
         cls.__mutex.acquire()
-
         # 配置并解析配置文件
         cls.config.read(cls.__configure_file_path)
-
         cls.__mutex.release()
+
+        print("parse_config")
 
     @classmethod
     def set_config_file(cls, file_path):
@@ -40,19 +48,24 @@ class ConfigureInotify(threading.Thread):
 
     @classmethod
     def run(cls):
-        print("zengjf")
+        wm = WatchManager()
+        mask = pyinotify.IN_MODIFY
+        notifier = Notifier(wm, InotifyEventHandler())
+        wm.add_watch(os.path.dirname(cls.__configure_file_path), mask, auto_add= True, rec=True)
 
-    @classmethod
-    def monitoring_config(cls):
-        pass
+        # print("now starting monitor config directory." )
 
-    @classmethod
-    def stop_monitor(cls):
-        pass
+        while True:
+            try:
+                notifier.process_events()
+                if notifier.check_events():
+                    notifier.read_events()
+            except KeyboardInterrupt:
+                print("keyboard Interrupt.")
+                notifier.stop()
+                break
 
-
-configures = ConfigureInotify()
-configures.set_config_file("config.ini")
+configureInotify = ConfigureInotify()
 
 if __name__ == '__main__':
 
@@ -62,4 +75,11 @@ if __name__ == '__main__':
     #     < __main__.Configures object at 0x000001F27F04DE48 >
     print(ConfigureInotify())
     print(ConfigureInotify())
-    print(configures)
+    print(configureInotify)
+
+    configureInotify.set_config_file("config/config.ini")
+    configureInotify.start()
+
+    while True:
+        pass
+
