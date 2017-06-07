@@ -10,6 +10,8 @@ Default configure file is `config/config.ini`
 * Parsing configure with getting configure infomations is Thread safe.
   * `get_sections()`
   * `get_section_value(section, key)`
+* [ConfigureInotify](ConfigureInotify.py) monitor the `config` direcotry and filter for `config/config.ini`.
+* [ConfigureInotifyV2](ConfigureInotifyV2.py) monitor just a configure file(`config/config.ini`). **This Just A Demo, It Will Be Finish In The Future.**
 
 # Example
 
