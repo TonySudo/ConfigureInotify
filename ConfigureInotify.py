@@ -6,12 +6,14 @@ import configparser
 import threading
 import os
 import pyinotify
+import time
 from pyinotify import WatchManager, Notifier, ProcessEvent
 
 class InotifyEventHandler(ProcessEvent):
     def process_IN_MODIFY(self, event):
         # reparse the configure file
-        ConfigureInotify.parse_config()
+        if event.name.find(os.path.basename(ConfigureInotify.get_config_file())) == 0:
+            ConfigureInotify.parse_config()
 
 # 初始化配置
 class ConfigureInotify(threading.Thread):
@@ -47,6 +49,11 @@ class ConfigureInotify(threading.Thread):
         cls.__configure_file_path = file_path
 
     @classmethod
+    def get_config_file(cls):
+
+        return cls.__configure_file_path
+
+    @classmethod
     def run(cls):
         wm = WatchManager()
         mask = pyinotify.IN_MODIFY
@@ -65,6 +72,35 @@ class ConfigureInotify(threading.Thread):
                 notifier.stop()
                 break
 
+    @classmethod
+    def get_sections(cls):
+        if cls.config != None :
+            try:
+                cls.__mutex.acquire()
+                ret = cls.config.sections()
+            except:
+                ret = None
+            finally:
+                cls.__mutex.release()
+                return ret
+        else :
+            return None
+
+    @classmethod
+    def get_section_value(cls, section, key):
+
+        if cls.config != None :
+            try:
+                cls.__mutex.acquire()
+                ret = cls.config[section][key]
+            except:
+                ret = None
+            finally:
+                cls.__mutex.release()
+                return ret
+        else :
+            return None
+
 configureInotify = ConfigureInotify()
 
 if __name__ == '__main__':
@@ -81,5 +117,8 @@ if __name__ == '__main__':
     configureInotify.start()
 
     while True:
-        pass
+        print(configureInotify.get_sections())
+        print(configureInotify.get_section_value("remote", "IP"))
+        # time.sleep(50 / 1000)
+        time.sleep(1)
 
